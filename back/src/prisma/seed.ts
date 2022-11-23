@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { Accounts, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
+import md5 from 'md5';
 
 import  axios from 'axios';
 
@@ -24,41 +25,97 @@ async function populate() {
   
   const fakeUsers = await getFromAxios("https://fakestoreapi.com/users?limit=5");
 
-  
-  
   const alice = await prisma.users.upsert({
-    where: {  accountId: 0 },
-    update: {},
-    create: {
-      password: 'alice@prisma.io',
-      name: 'Alice',
-      account: {
-        create:{
-          balance: 100
-        },
-      },
-  }})
-  
-  const carlinhos = await prisma.users.upsert({
     where: {
-      accountId: 0
+      username: 'alice@prisma.io'
     },
     update: {},
     create: {
-      password: 'carlinhos@prisma.io',
-      name: 'another name',
+      password: md5('some-hashpass-lol'),
+      username: 'alice@prisma.io',
+      account: {
+        create:{
+          balance: 100
+        },
+      },
+    }
+  })
+
+
+  const carlinhos = await prisma.users.upsert({
+    where: {
+      username: 'carlinhos@prisma.io'
+    },
+    update: {},
+    create: {
+      password: md5('some-hashpass-lol'),
+      username: 'carlinhos@prisma.io',
       account: {
         create:{
           balance: 100
         },
       },
   }})
+  
+  const firstTransaction = await prisma.transactions.upsert({
+    where: {id: 0},
+    update: {
+    },
+    create: {
+      debitatedAccountId: carlinhos.accountId,
+      creditatedAccountId: alice.accountId,
+      value: 20
+    }
 
-  console.log(fakeUsers);
+  });
 
+  async function debitedBalance() {
+
+    const getCarlinhos = await prisma.accounts.findUnique({
+      where:{
+        id: carlinhos.accountId
+      }
+    });
+ 
+    await prisma.accounts.update({
+        where:{
+          id: getCarlinhos?.id
+        },
+        data:{
+          balance: Number(getCarlinhos?.balance) - Number(firstTransaction.value)
+        }
+      })
+  
+  };
+
+  async function creditedBalance () { 
+
+    const getAlice = await prisma.accounts.findUnique({
+      where:{
+        id: alice.accountId
+      }
+    });
+
+    await prisma.accounts.update({
+        where: {
+          id: getAlice?.id
+        },
+        data: {
+          balance: Number(getAlice?.balance) + Number(firstTransaction.value)
+        }
+      })
+    
+  }
+    
+  debitedBalance();
+  creditedBalance();
+
+
+ 
 }
+
 dropTables()
-    .then(() => populate()) 
+    .then(() => populate())
     .then(async () => {
       await prisma.$disconnect()
     })

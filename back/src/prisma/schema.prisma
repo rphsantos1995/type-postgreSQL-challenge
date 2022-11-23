@@ -13,7 +13,7 @@ datasource db {
 model Accounts {
   id         Int            @id @default(autoincrement())
   user       Users?
-  balance    Int
+  balance    Float
   debitated  Transactions[] @relation("name1")
   creditated Transactions[] @relation("name2")
 }
@@ -21,7 +21,7 @@ model Accounts {
 model Users {
   id        Int      @id @default(autoincrement())
   password  String
-  name      String
+  username  String   @unique 
   account   Accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId Int      @unique
 }
@@ -34,6 +34,6 @@ model Transactions {
   creditatedAccount   Accounts @relation("name2", fields: [creditatedAccountId], references: [id], onDelete: Cascade)
   creditatedAccountId Int
 
-  value     Int
+  value     Float
   createdAt DateTime @default(now())
 }
