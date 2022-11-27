@@ -1,7 +1,7 @@
 import { Accounts, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 import md5 from 'md5';
-
+import bcrypt from 'bcrypt';
 import  axios from 'axios';
 
 async function dropTables () {
@@ -21,9 +21,15 @@ const getFromAxios = async (url: string) => {
 }
 
 
+async function hashPass(password:string) {
+  return await bcrypt.hash(password, 10);
+
+};
+
+
 async function populate() {
   
-  const fakeUsers = await getFromAxios("https://fakestoreapi.com/users?limit=5");
+  // const fakeUsers = await getFromAxios("https://fakestoreapi.com/users?limit=5");
 
   const alice = await prisma.users.upsert({
     where: {
@@ -31,7 +37,7 @@ async function populate() {
     },
     update: {},
     create: {
-      password: md5('some-hashpass-lol'),
+      password: await hashPass('some-hashpass-lol'),
       username: 'alice@prisma.io',
       account: {
         create:{
@@ -48,7 +54,7 @@ async function populate() {
     },
     update: {},
     create: {
-      password: md5('some-hashpass-lol'),
+      password: await hashPass('some-hashpass-lol'),
       username: 'carlinhos@prisma.io',
       account: {
         create:{
@@ -57,11 +63,9 @@ async function populate() {
       },
   }})
   
-  const firstTransaction = await prisma.transactions.upsert({
-    where: {id: 0},
-    update: {
-    },
-    create: {
+  const firstTransaction = await prisma.transactions.create({
+  
+    data: {
       debitatedAccountId: carlinhos.accountId,
       creditatedAccountId: alice.accountId,
       value: 20
@@ -76,7 +80,7 @@ async function populate() {
         id: carlinhos.accountId
       }
     });
- 
+
     await prisma.accounts.update({
         where:{
           id: getCarlinhos?.id
@@ -110,8 +114,6 @@ async function populate() {
   debitedBalance();
   creditedBalance();
 
-
- 
 }
 
 dropTables()
