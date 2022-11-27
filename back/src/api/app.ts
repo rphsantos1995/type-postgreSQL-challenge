@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 
-
 import { userRouter } from './controller/userController';
+import { tscRouter } from './controller/transactionController';
 
 let usrRouter = new userRouter();
+let transactionRouter = new tscRouter();
 
 class App {
   
@@ -28,7 +29,9 @@ class App {
     this.app.use(accessControl);
     this.app.use(express.json());
     this.app.use(cors());
-    this.app.use('/users', usrRouter.router);
+    this.app.use('/user', usrRouter.router);
+    this.app.use('/transaction', transactionRouter.router);
+  
   }
 
   public  start(PORT: string | number):void {
